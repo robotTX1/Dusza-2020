@@ -1,21 +1,26 @@
 package com.dusza;
 
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class IOHandler {
-        public static IOHandler single_instance = null;
-        private Path mainPath;
-        private final String data_pattern = "yyyy.MM.dd HH.mm.ss";
+    public static final String VERSION_CONTROL_DIRECTORY = ".dusza";
+    public static final String HEAD_FILE = "head.txt";
+
+    public static IOHandler single_instance = null;
+    private Path mainPath;
+    private Path versionControlPath;
+    private Path headPath;
+    private final String data_pattern = "yyyy.MM.dd HH.mm.ss";
 
 
         // constructor
         private IOHandler(Path path) {
-            mainPath=path;
+            this.mainPath = path;
+            this.versionControlPath = mainPath.resolve(VERSION_CONTROL_DIRECTORY);
+            this.headPath = versionControlPath.resolve(HEAD_FILE);
         }
 
         public static IOHandler init(Path path) {
@@ -46,7 +51,7 @@ public class IOHandler {
                     data.add(input.nextLine());
                 }
             } catch (IOException e) {
-                System.out.println("File named " + path.toString() + " not found.");
+                System.out.println("File named " + path + " not found.");
             }
 
             return data;
@@ -55,14 +60,13 @@ public class IOHandler {
         public List<String> readFiles() {
             return readFiles(mainPath, false);
         }
+
         public List<String> readFiles(boolean directoriesAllowed) {
             return readFiles(mainPath, directoriesAllowed);
         }
 
-
         public List<String> readFiles(Path path, boolean directoriesAllowed) {
             List<String> data = new ArrayList<>();
-            File folder = path.toFile();
 
             try {
                 DirectoryStream<Path> stream = Files.newDirectoryStream(path);
@@ -84,33 +88,31 @@ public class IOHandler {
             try {
                 Files.copy(o, d, StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                System.out.println("File copy failed" + o.toString() + " " + d.toString());
+                System.out.println("File copy failed" + o + " " + d);
                 e.printStackTrace();
             }
         }
 
         public List<String> readAllCommits() {
-            Path p = mainPath.resolve("/.dusza/");
-            List<String> files = readFiles(p, true);
+            List<String> files = readFiles(versionControlPath, true);
             files.remove(files.size()-1); // remove head.txt
 
             return files;
         }
 
-        public List<String> readCommitDetails(int commitIndex) {
-            Path commitPath = getCommitPath(commitIndex);
-            return readFile(commitPath);
+        public String readCommitDetails(int commitIndex) {
+            Path commitPath = getCommitDetailsPath(commitIndex);
+            return String.join("\n", readFile(commitPath));
         }
 
-        public Path getCommitPath(int commitIndex) {
-            return mainPath.resolve("/.dusza/" + commitIndex + ".commit/commit.details");
+        public Path getCommitDetailsPath(int commitIndex) {
+            return mainPath.resolve(VERSION_CONTROL_DIRECTORY + commitIndex + ".commit/commit.details");
         }
 
         public Commit loadCommit(int commitIndex) {
             Commit newCommit = null;
-            Path commitPath = getCommitPath(commitIndex);
+            Path commitPath = getCommitDetailsPath(commitIndex);
             List<String> commitData = readFile(commitPath);
-
 
             try(Scanner scanner = new Scanner(commitPath)) {
                 scanner.useDelimiter(" ");
@@ -136,8 +138,7 @@ public class IOHandler {
                     changes.add(scanner.nextLine());
                 }
 
-                newCommit = new Commit(parent, author, Commit.getDateFromString(date), decs, changes);
-
+                newCommit = new Commit(commitIndex, parent, author, Commit.getDateFromString(date), decs, changes);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -146,7 +147,7 @@ public class IOHandler {
         }
 
         public HashMap<Path,ChangeType> getChanges() {
-            HashMap<Path,ChangeType> changes = new HashMap<Path, ChangeType>();
+            HashMap<Path,ChangeType> changes = new HashMap<>();
             List<String> files = readFiles();
 
 
@@ -159,8 +160,11 @@ public class IOHandler {
 
         }
 
-        public void initWorkspace() {
+        public boolean initWorkspace() {
+            //if(Files.notExists())
 
+
+            return true;
         }
 
         public int getCurrentCommit() {
