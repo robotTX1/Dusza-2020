@@ -174,9 +174,13 @@ public class IOHandler {
         return changes;
     }
 
+    public static boolean workspaceIsInitialized(Workspace workspace) {
+        return Files.exists(workspace.getVersionControlPath());
+    }
+
     public static boolean initWorkspace(Workspace workspace) {
         try {
-            if(Files.notExists(workspace.getVersionControlPath())) {
+            if(!workspaceIsInitialized(workspace)) {
                 Files.createDirectory(workspace.getVersionControlPath());
                 Files.createFile(workspace.getHeadPath());
                 writeHead(workspace, 0);
@@ -201,6 +205,10 @@ public class IOHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void incrementHead(Workspace workspace) {
+        writeHead(workspace, getCurrentCommit(workspace) + 1);
     }
 
 
