@@ -239,7 +239,7 @@ public class IOHandler {
         }
     }
 
-    public static void deleteFiles(Workspace workspace) {
+    private static void deleteFiles(Workspace workspace) {
         List<Path> files = readFiles(workspace, false);
         for(Path p : files) {
             try {
@@ -249,6 +249,14 @@ public class IOHandler {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static void copyCommitToWorkspace(Workspace workspace, int index) {
+        deleteFiles(workspace);
+        Path commitDir = workspace.getVersionControlPath().resolve(index + ".commit");
+        List<Path> files = readFiles(commitDir, false);
+        files.remove(commitDir.resolve("commit.details"));
+        copyFiles(files, workspace.getWorkspacePath());
     }
 
 }
