@@ -1,5 +1,7 @@
 package com.dusza;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
@@ -20,24 +22,24 @@ public class IOHandler {
         return data;
     }
 
-    public static List<String> readFiles(Workspace workspace) {
+    public static List<Path> readFiles(Workspace workspace) {
         return readFiles(workspace.getWorkspacePath(), false);
     }
 
-    public static List<String> readFiles(Workspace workspace, boolean directoriesAllowed) {
+    public static List<Path> readFiles(Workspace workspace, boolean directoriesAllowed) {
         return readFiles(workspace.getWorkspacePath(), directoriesAllowed);
     }
 
-    public static List<String> readFiles(Path path, boolean directoriesAllowed) {
-        List<String> data = new ArrayList<>();
+    public static List<Path> readFiles(Path path, boolean directoriesAllowed) {
+        List<Path> data = new ArrayList<>();
 
         try {
             DirectoryStream<Path> stream = Files.newDirectoryStream(path);
             for (Path p : stream) {
                 if (directoriesAllowed) {
-                    data.add(p.toString());
+                    data.add(p);
                 } else if (!Files.isDirectory(p)) {
-                    data.add(p.toString());
+                    data.add(p);
                 }
             }
         } catch (IOException e) {
@@ -57,10 +59,16 @@ public class IOHandler {
     }
 
     public static List<String> readAllCommits(Workspace workspace) {
-        List<String> files = readFiles(workspace.getVersionControlPath(), true);
+        List<Path> files = readFiles(workspace.getVersionControlPath(), true);
+        List<String> sFiles = new ArrayList<>();
+
         files.remove(files.size()-1); // remove head.txt
 
-        return files;
+        for (Path p : files) {
+            sFiles.add(p.getFileName().toString());
+        }
+
+        return sFiles;
     }
 
     public static String readCommitDetails(Workspace workspace, int commitIndex) {
@@ -111,14 +119,9 @@ public class IOHandler {
 
     public static HashMap<Path,ChangeType> getChanges(Workspace workspace) {
         HashMap<Path,ChangeType> changes = new HashMap<>();
-        List<String> files = readFiles(workspace);
+        List<Path> files = readFiles(workspace);
 
         return changes;
-    }
-
-    public static void createCommit(Workspace workspace) {
-        List<String> files = readFiles(workspace);
-
     }
 
     public static boolean initWorkspace(Workspace workspace) {
@@ -140,4 +143,43 @@ public class IOHandler {
         List<String> head = readFile(workspace.getHeadPath());
         return Integer.parseInt(head.get(0));
     }
+
+
+    public static void copyFiles(List<Path> inputPaths, Path copyPath) {
+        for (Path p : inputPaths) {
+            copyFile(p, copyPath.resolve(p.getFileName()));
+        }
+
+    }
+
+    public static void createCommit(Workspace workspace, Commit commit) {
+        try {
+            Path newCommitP = workspace.getVersionControlPath().resolve(commit.getId() + ".commit");
+            Files.createDirectory(newCommitP);
+
+            List<Path> paths = readFiles(workspace, false);
+            copyFiles(paths, newCommitP);
+
+            // create commit.details
+            Path commitDetails = newCommitP.resolve("commit.details");
+            Files.createFile(commitDetails);
+
+
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(String.valueOf(commitDetails)))) {
+                writer.write(String.format("Szulo: %s\n", commit.getId()));
+                writer.write(String.format("Szerzo: %s\n", commit.getAuthor()));
+                writer.write(String.format("Datum: %s\n", Commit.formatDate(commit.getCreationDate())));
+                writer.write(String.format("Commit leiras: %s\n", commit.getDescription()));
+                writer.write(String.format("Valtozott: %s", String.join("\n", commit.getChanges())));
+
+
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
