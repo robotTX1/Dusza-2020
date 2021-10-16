@@ -1,5 +1,8 @@
 package com.dusza;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.IllegalFormatException;
 import java.util.List;
@@ -17,7 +20,10 @@ public class CommandLineInterface {
         this.workspace = workspace;
 
         Command commit = new Command("commit", "Lementi a mappa állapotát.", () -> {
-            if(workspace.commit()) {
+            System.out.print("Commit leírása: ");
+            String description = input.nextLine();
+
+            if(workspace.commit(description)) {
                 System.out.println("Commit létrehozva");
             } else {
                 System.out.println("Nem történt változás a fájlokban!");
@@ -55,8 +61,33 @@ public class CommandLineInterface {
 
     public void start() {
         System.out.println("Üdv a Dusza verzió követő programban!");
-        System.out.println("Lehetséges parancsokért írd be: " + helpCommand);
+        System.out.println("Adja meg a veriókövetett mappa elérési útját vagy írja be, hogy " + exitCommand + " a kilépéshez!");
 
+
+        String path;
+        while(true) {
+            System.out.print("Mappa elérési útja: ");
+            path = input.nextLine().trim();
+            if(path.equalsIgnoreCase(exitCommand)) {
+                exit();
+                return;
+            }
+
+            Path workPath = Paths.get(path);
+            if(Files.exists(workPath) && Files.isDirectory(workPath)) {
+                workspace.setWorkspacePath(workPath);
+                break;
+            }
+
+            System.out.println("Érvénytelen elérési út: " + workPath.toAbsolutePath());
+        }
+
+
+
+        System.out.print("Kérem a felhasználó nevét: ");
+        workspace.setAuthor(input.nextLine());
+
+        System.out.println("Lehetséges parancsokért írd be: " + helpCommand);
         String command;
         while(true) {
             command = input.nextLine().trim();
@@ -75,7 +106,7 @@ public class CommandLineInterface {
             // Exit
             if(command.equalsIgnoreCase(exitCommand)) {
                 exit();
-                break;
+                return;
             }
         }
     }

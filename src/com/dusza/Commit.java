@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.List;
 
 public class Commit {
-    public static final String dateFormat = "YYYY.MM.dd hh:mm:ss";
+    public static final String dateFormat = "YYYY.MM.dd HH:mm:ss";
 
     private final int id;
     private final String parent;
