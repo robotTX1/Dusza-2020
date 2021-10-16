@@ -1,9 +1,7 @@
 package com.dusza;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class Workspace {
     public static final String VERSION_CONTROL_DIRECTORY = ".dusza";
@@ -46,8 +44,10 @@ public class Workspace {
 
         if(changes.size() == 0) return false;
 
+        int fresh = IOHandler.getCurrentCommit(this);
+
         Commit newCommit = new Commit(
-                currentCommit+1,
+                fresh+1,
                 currentCommit == 0 ? "-" : currentCommit+"",
                 author,
                 new Date(System.currentTimeMillis()),
@@ -62,9 +62,44 @@ public class Workspace {
         return true;
     }
 
+    public boolean changeCommit(int index) {
+        int size = IOHandler.readFiles(this).size();
+
+        if(!(index > 0 && index < size+1)) return false;
+        setCommitNumber(index);
+
+        IOHandler.copyCommitToWorkspace(this, index);
+
+        return true;
+    }
+
+    public String getCommitTree() {
+        StringBuilder builder = new StringBuilder();
+        int max = IOHandler.readAllCommits(this).size();
+
+        List<Commit> commitList = new ArrayList<>();
+
+        for(int i=1; i<=max; i++) {
+            commitList.add(IOHandler.loadCommit(this, i));
+        }
+
+        Collections.sort(commitList, Comparator.comparing(Commit::getParent));
+
+        for(Commit c : commitList) {
+            builder.append(" ".repeat(c.getParent().equals("-") ? 0 : Integer.parseInt(c.getParent())));
+            builder.append(c.getId()+".commit").append("\n");
+        }
+
+        return builder.toString();
+    }
+
+    private void setCommitNumber(int index) {
+        currentCommit = index;
+    }
+
     private void incrementCommitNumber() {
         currentCommit++;
-        IOHandler.writeHead(this, currentCommit);
+        IOHandler.incrementHead(this);
     }
 
     public List<String> getCommits() {
@@ -107,5 +142,9 @@ public class Workspace {
 
     public void setAuthor(String author) {
         this.author = author;
+    }
+
+    public boolean isInitialized() {
+        return IOHandler.workspaceIsInitialized(this);
     }
 }
