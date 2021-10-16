@@ -117,9 +117,58 @@ public class IOHandler {
         return newCommit;
     }
 
-    public static HashMap<Path,ChangeType> getChanges(Workspace workspace) {
-        HashMap<Path,ChangeType> changes = new HashMap<>();
+    public static String pathToDate(Path p) {
+        Date date = new Date(p.toFile().lastModified());
+        return Commit.formatDate(date);
+    }
+
+    public static List<String> getChanges(Workspace workspace) {
+        List<String> changes = new ArrayList<>();
         List<Path> files = readFiles(workspace);
+        List<Path> oldFiles = readFiles(workspace.getVersionControlPath().resolve(getCurrentCommit(workspace) + ".commit"), false);
+
+        Path commitDetailsPath = workspace.getVersionControlPath().resolve(getCurrentCommit(workspace) + ".commit").resolve("commit.details");
+
+        oldFiles.remove(commitDetailsPath);
+
+        // uj
+        boolean found;
+        for(Path n : files) {
+            found = false;
+            for(Path o : oldFiles) {
+                if(n.getFileName().toString().equals(o.getFileName().toString())) {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) changes.add(String.format("uj %s %s", n.getFileName(), pathToDate(n)));
+        }
+
+        // torolt
+
+        for(Path o : oldFiles) {
+            found = false;
+            for(Path n : files) {
+                if(n.getFileName().toString().equals(o.getFileName().toString())) {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) changes.add(String.format("torolt %s %s", o.getFileName(), pathToDate(o)));
+        }
+
+        // modositott
+
+        for(Path n : files) {
+            for(Path o : oldFiles) {
+                if(n.getFileName().toString().equals(o.getFileName().toString())) {
+                    if(!pathToDate(n).equals(pathToDate(o))) {
+                        changes.add(String.format("valtozott %s %s", n.getFileName(), pathToDate(n)));
+                    }
+                    break;
+                }
+            }
+        }
 
         return changes;
     }
@@ -129,6 +178,7 @@ public class IOHandler {
             if(Files.notExists(workspace.getVersionControlPath())) {
                 Files.createDirectory(workspace.getVersionControlPath());
                 Files.createFile(workspace.getHeadPath());
+                writeHead(workspace, 0);
             } else {
                 return false;
             }
@@ -142,6 +192,14 @@ public class IOHandler {
     public static int getCurrentCommit(Workspace workspace) {
         List<String> head = readFile(workspace.getHeadPath());
         return Integer.parseInt(head.get(0));
+    }
+
+    public static void writeHead(Workspace workspace, int index) {
+        try(BufferedWriter writer = Files.newBufferedWriter(workspace.getHeadPath())) {
+            writer.write(index + "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -166,13 +224,11 @@ public class IOHandler {
 
 
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(String.valueOf(commitDetails)))) {
-                writer.write(String.format("Szulo: %s\n", commit.getId()));
+                writer.write(String.format("Szulo: %s\n", commit.getParent()));
                 writer.write(String.format("Szerzo: %s\n", commit.getAuthor()));
                 writer.write(String.format("Datum: %s\n", Commit.formatDate(commit.getCreationDate())));
                 writer.write(String.format("Commit leiras: %s\n", commit.getDescription()));
-                writer.write(String.format("Valtozott: %s", String.join("\n", commit.getChanges())));
-
-
+                writer.write(String.format("Valtozott: \n%s", String.join("\n", commit.getChanges())));
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
