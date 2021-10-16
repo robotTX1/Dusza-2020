@@ -3,6 +3,9 @@ package com.dusza;
 public class Main {
 
     public static void main(String[] args) {
-	// write your code here
+        Workspace workspace = new Workspace();
+	    CommandLineInterface cli = new CommandLineInterface(workspace);
+
+        cli.start();
     }
 }
