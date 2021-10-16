@@ -1,6 +1,7 @@
 package com.dusza;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.*;
@@ -235,6 +236,18 @@ public class IOHandler {
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void deleteFiles(Workspace workspace) {
+        List<Path> files = readFiles(workspace, false);
+        for(Path p : files) {
+            try {
+                Files.delete(p);
+            } catch (IOException e) {
+                System.out.println("Unable to delete " + p + ".");
+                e.printStackTrace();
+            }
         }
     }
 
