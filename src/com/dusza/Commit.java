@@ -8,13 +8,15 @@ import java.util.List;
 public class Commit {
     public static final String dateFormat = "YYYY.MM.dd hh:mm:ss";
 
+    private final int id;
     private final String parent;
     private final String author;
     private final Date creationDate;
     private final String description;
     private final List<String> changes;
 
-    public Commit(String parent, String author, Date creationDate, String description, List<String> changes) {
+    public Commit(int id, String parent, String author, Date creationDate, String description, List<String> changes) {
+        this.id = id;
         this.parent = parent;
         this.author = author;
         this.creationDate = creationDate;
@@ -57,5 +59,9 @@ public class Commit {
 
     public List<String> getChanges() {
         return changes;
+    }
+
+    public int getId() {
+        return id;
     }
 }
